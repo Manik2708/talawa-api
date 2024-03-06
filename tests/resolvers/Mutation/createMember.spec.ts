@@ -21,11 +21,9 @@ import { createTestUserAndOrganization } from "../../helpers/userAndOrg";
 let testUser: TestUserType;
 let testOrganization: TestOrganizationType;
 let MONGOOSE_INSTANCE: typeof mongoose;
-
 beforeAll(async () => {
   MONGOOSE_INSTANCE = await connect();
   const resultsArray = await createTestUserAndOrganization(false);
-
   testUser = resultsArray[0];
   testOrganization = resultsArray[1];
   const { requestContext } = await import("../../../src/libraries");
@@ -64,8 +62,8 @@ describe("resolvers -> Mutation -> createAdmin", () => {
       };
 
       await createMemberResolver?.({}, args, context);
-    } catch (error: any) {
-      expect(error.message).toEqual(USER_NOT_FOUND_ERROR.MESSAGE);
+    } catch (error) {
+      expect((error as Error).message).toEqual(USER_NOT_FOUND_ERROR.MESSAGE);
     }
   });
 
@@ -105,8 +103,8 @@ describe("resolvers -> Mutation -> createAdmin", () => {
       };
 
       await createMemberResolver?.({}, args, context);
-    } catch (error: any) {
-      expect(error.message).toEqual(USER_NOT_FOUND_ERROR.MESSAGE);
+    } catch (error) {
+      expect((error as Error).message).toEqual(USER_NOT_FOUND_ERROR.MESSAGE);
     }
   });
 
@@ -124,29 +122,22 @@ describe("resolvers -> Mutation -> createAdmin", () => {
       };
 
       await createMemberResolver?.({}, args, context);
-    } catch (error: any) {
-      expect(error.message).toEqual(ORGANIZATION_NOT_FOUND_ERROR.MESSAGE);
+    } catch (error) {
+      expect((error as Error).message).toEqual(
+        ORGANIZATION_NOT_FOUND_ERROR.MESSAGE,
+      );
     }
   });
 
   it(`throws UnauthorizedError if user with _id === args.input.userId is already an member
   of organzation with _id === args.input.organizationId`, async () => {
     try {
-      await Organization.updateOne(
-        {
-          _id: testOrganization?._id,
-        },
-        {
-          $push: {
-            members: testUser?._id,
-          },
-        },
-      );
-
+      const resultsArrayForMemberTest =
+        await createTestUserAndOrganization(true);
       const args: MutationCreateMemberArgs = {
         input: {
-          organizationId: testOrganization?.id,
-          userId: testUser?.id,
+          organizationId: resultsArrayForMemberTest[1]?._id,
+          userId: resultsArrayForMemberTest[0]?._id,
         },
       };
 
@@ -155,12 +146,24 @@ describe("resolvers -> Mutation -> createAdmin", () => {
       };
 
       await createMemberResolver?.({}, args, context);
-    } catch (error: any) {
-      expect(error.message).toEqual(MEMBER_NOT_FOUND_ERROR.MESSAGE);
+    } catch (error) {
+      expect((error as Error).message).toEqual(MEMBER_NOT_FOUND_ERROR.MESSAGE);
     }
   });
 
   it(`Verify that the organization's members list now contains the user's ID`, async () => {
+    const args: MutationCreateMemberArgs = {
+      input: {
+        organizationId: testOrganization?._id,
+        userId: testUser?._id,
+      },
+    };
+
+    const context = {
+      userId: testUser?.id,
+    };
+
+    await createMemberResolver?.({}, args, context);
     const updatedTestOrganization = await Organization.findOne({
       _id: testOrganization?._id,
     })
