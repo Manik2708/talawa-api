@@ -1,6 +1,6 @@
-import mongodb from "mongodb";
 import { exec } from "child_process";
 import dotenv from "dotenv";
+import { MongoClient } from "mongodb";
 
 dotenv.config();
 
@@ -21,7 +21,7 @@ export async function importDefaultOrganization(): Promise<void> {
     return;
   }
 
-  const client = new mongodb.MongoClient(process.env.MONGO_DB_URL);
+  const client = new MongoClient(process.env.MONGO_DB_URL);
 
   try {
     await client.connect();
